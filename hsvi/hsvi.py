@@ -10,7 +10,7 @@ import os
 
 from edward.inferences import Inference
 from edward.models import RandomVariable,Normal
-from methods.svgd import SVGD
+from .methods.svgd import SVGD
 
 
 class Hierarchy_SVI(Inference):
