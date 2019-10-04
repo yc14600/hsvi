@@ -88,7 +88,8 @@ class Hierarchy_SVI(Inference):
     
     def build_scope_loss_and_gradients(self,scope,vi_type,var_dict,losses,grads_and_vars):
 
-        if vi_type in ['KLqp','Norm_flows','VAE','KLqp_analytic','KLqp_JS','KLqp_mutual','KLqp_gaussian_NG','KLqp_gaussian_trans_NG']:
+        if vi_type in ['KLqp','Norm_flows','VAE','KLqp_analytic','KLqp_JS','KLqp_mutual','KLqp_GNG','KLqp_trans_GNG',\
+                        'KLqp_analytic_GNG','KLqp_analytic_trans_GNG']:
             losses[scope], grads_and_vars[scope] = self.build_reparam_ELBO_and_grads(scope,var_dict[scope],vi_type)
             
         elif vi_type == 'cumulative_KLqp':
@@ -163,7 +164,7 @@ class Hierarchy_SVI(Inference):
 
         # KL-TERM for different inference methods       
         for z,qz in six.iteritems(latent_vars):
-            if vi_type in ['KLqp','VAE']:
+            if vi_type in ['KLqp','VAE','KLqp_GNG','KLqp_trans_GNG']:
                 qz_constrain = self.constrain.get(qz,None)
         
                 if qz_constrain is None:
@@ -181,7 +182,7 @@ class Hierarchy_SVI(Inference):
                 # qz should be in the form of (z,lnq)
                 kl = qz[1] - z.log_prob(qz[0])
             
-            elif vi_type in ['KLqp_analytic','KLqp_gaussian_NG','KLqp_gaussian_trans_NG'] :                       
+            elif 'KLqp_analytic' in vi_type:                       
                 kl += tf.reduce_mean(qz.kl_divergence(z))                
             
             elif vi_type == 'KLqp_JS' :  
@@ -199,10 +200,10 @@ class Hierarchy_SVI(Inference):
         self.ll = ll
         grads_and_vars = []
         # analytic natural gradient of Normal distribution
-        if 'NG' in vi_type:
-            if vi_type == 'KLqp_gaussian_trans_NG':
+        if 'GNG' in vi_type:
+            if 'trans_GNG' in vi_type:
                 grads_and_vars = self.natural_gradients_gaussian_trans(loss,scope)
-            elif vi_type == 'KLqp_gaussian_NG':
+            else:
                 grads_and_vars = self.natural_gradients_gaussian(loss,scope)
             
             for V in six.itervalues(self.trans_parm[scope]):
