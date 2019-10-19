@@ -702,7 +702,7 @@ class Hierarchy_SVI(Inference):
 
         return
 
-    def update(self,scope,feed_dict=None):
+    def update(self,scope,feed_dict=None,sess=None):
         if feed_dict is None:
           feed_dict = {}
         # get parent scope to fetch data for implicit vi
@@ -715,7 +715,8 @@ class Hierarchy_SVI(Inference):
           if isinstance(key, tf.Tensor) and "Placeholder" in key.op.type:
             feed_dict[key] = value
         
-        sess = ed.get_session()
+        if not sess:
+            sess = ed.get_session()
                
         _,t, loss = sess.run([self.train[scope], self.increment_t, self.losses[scope]], feed_dict)
         return {'t':t,'loss':loss}
