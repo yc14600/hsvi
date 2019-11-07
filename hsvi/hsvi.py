@@ -143,7 +143,7 @@ class Hierarchy_SVI(Inference):
         data = self.data[scope]
         coresets = self.coresets.get(scope,{})
         rec_err = 0.       
-        #avg = 1./self.train_size
+        avg = 1./self.train_size
 
         # likelihood
         for x, qx in six.iteritems(data):
@@ -169,13 +169,13 @@ class Hierarchy_SVI(Inference):
         
                 if qz_constrain is None:
                     if isinstance(qz,RandomVariable):
-                        kl += tf.reduce_mean(qz.log_prob(qz))-tf.reduce_mean(z.log_prob(qz))
+                        kl += tf.reduce_sum(qz.log_prob(qz))-tf.reduce_sum(z.log_prob(qz))
                     else:
-                        kl += tf.reduce_mean(qz.log_prob(qz.value()))-tf.reduce_mean(z.log_prob(qz.value()))
+                        kl += tf.reduce_sum(qz.log_prob(qz.value()))-tf.reduce_sum(z.log_prob(qz.value()))
                     #kl += tf.reduce_sum(qz.kl_divergence(z))
                 else:
                     qz_samples = tf.clip_by_value(qz,qz_constrain[0],qz_constrain[1]) 
-                    kl += tf.reduce_mean(qz.log_prob(qz_samples))-tf.reduce_mean(z.log_prob(qz_samples))
+                    kl += tf.reduce_sum(qz.log_prob(qz_samples))-tf.reduce_sum(z.log_prob(qz_samples))
             
 
             elif vi_type == 'Norm_flows':
@@ -183,18 +183,18 @@ class Hierarchy_SVI(Inference):
                 kl = qz[1] - z.log_prob(qz[0])
             
             elif 'KLqp_analytic' in vi_type:                       
-                kl += tf.reduce_mean(qz.kl_divergence(z))                
+                kl += tf.reduce_sum(qz.kl_divergence(z))                
             
             elif vi_type == 'KLqp_JS' :  
                 if self.task_id>0:                                   
-                    kl += tf.reduce_mean((0.01*z.cross_entropy(qz)+0.99*qz.cross_entropy(z))-qz.entropy())
+                    kl += tf.reduce_sum((0.01*z.cross_entropy(qz)+0.99*qz.cross_entropy(z))-qz.entropy())
                 else:
-                    kl += tf.reduce_mean(qz.kl_divergence(z)) 
+                    kl += tf.reduce_sum(qz.kl_divergence(z)) 
             
             elif vi_type == 'KLqp_mutual':
-                kl += - 0.1*tf.reduce_mean(qz.log_prob(qz)) - 0.9*tf.reduce_mean(z.prob(qz)/qz.prob(qz)*z.log_prob(qz))   #-tf.reduce_mean(q.entropy())#
+                kl += - 0.1*tf.reduce_sum(qz.log_prob(qz)) - 0.9*tf.reduce_sum(z.prob(qz)/qz.prob(qz)*z.log_prob(qz))   #-tf.reduce_mean(q.entropy())#
                                     
-        #kl *= avg
+        kl *= avg
         loss = kl - ll + rec_err + self.extra_loss.get(scope,0.)#+ tf.losses.get_regularization_losses(scope=scope)
         self.kl = kl
         self.ll = ll
