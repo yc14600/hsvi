@@ -17,6 +17,11 @@ def rbf_kernel(pairwise_dist, h=1.):
     
     return tf.exp(-1.*pairwise_dist/h)
 
+def cos_kernel(X):
+    x_norm = tf.reduce_sum(tf.square(X),axis=1)
+    X /= tf.reshape(x_norm,[-1,1])
+    return tf.matmul(X,tf.transpose(X))
+
 def get_median(v):    
     v = tf.reshape(v, [-1])
     m = v.shape[0].value//2
@@ -27,23 +32,30 @@ class SVGD:
     def __init__(self,h=None):       
         self.h = h
 
-    def svgd_kernel(self, X):
-        if len(X.shape) > 2:
-            X = tf.reshape(X,[X.shape[0].value,-1])
-        pdist = euc_dist(X,X)
+    def svgd_kernel(self, X, kernel_type='rbf'):
 
-        if self.h is None:
-            if X.shape[0].value == 1:
-                h = 1.
-            else:
-                h = get_median(pdist)  
-            h = tf.sqrt(0.5 * h / tf.log(X.shape[0].value+1.))
+        if kernel_type == 'rbf':
+            if len(X.shape) > 2:
+                X = tf.reshape(X,[X.shape[0].value,-1])
+            pdist = euc_dist(X,X)
 
-        kxy = rbf_kernel(pdist,h)
+            if self.h is None:
+                if X.shape[0].value == 1:
+                    h = 1.
+                else:
+                    h = get_median(pdist)  
+                h = tf.sqrt(0.5 * h / tf.log(X.shape[0].value+1.))
 
-        dx = tf.expand_dims(X,[1]) - tf.expand_dims(X,[0])
-        dkxy = 2*tf.matmul(tf.expand_dims(kxy,[1]),dx)/h
-        #print('check shape',dkxy.shape)
+            kxy = rbf_kernel(pdist,h)
+
+            dx = tf.expand_dims(X,[1]) - tf.expand_dims(X,[0])
+            dkxy = 2*tf.matmul(tf.expand_dims(kxy,[1]),dx)/h
+            #print('check shape',dkxy.shape)
+
+        elif kernel_type == 'cos':
+            kxy = cos_kernel(X)
+            dkxy = tf.gradients(kxy,X)
+
         return kxy, tf.squeeze(dkxy,axis=1)
 
     def gradients(self,X,dlnprob):
