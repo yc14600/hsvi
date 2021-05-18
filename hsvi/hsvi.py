@@ -15,10 +15,12 @@ from .methods.svgd import SVGD
 
 class Hierarchy_SVI(Inference):
     def __init__(self,latent_vars={},data={},*args,**kwargs):
+        print('start init hsvi')
         super(Hierarchy_SVI,self).__init__(*args,**kwargs)
         self.latent_vars = latent_vars
         self.data = data
         self.scopes = list(latent_vars.keys())
+        print('complete init hsvi')
 
     def initialize(self,scale={},optimizer={}, clipping={}, vi_types={}, constrain={},\
                     discriminator=None,loss_func={},samples={}, train_size=1000,\
@@ -716,8 +718,7 @@ class Hierarchy_SVI(Inference):
             feed_dict[key] = value
         
         if not sess:
-            sess = ed.get_session()
-               
+            sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))   
         _,t, loss = sess.run([self.train[scope], self.increment_t, self.losses[scope]], feed_dict)
         return {'t':t,'loss':loss}
 
@@ -734,11 +735,11 @@ class Hierarchy_SVI(Inference):
     def natural_gradients_gaussian(self,loss,scope):
         print('generate NG')
         trans_parm = self.trans_parm[scope]
-        #latent_vars = self.latent_vars[scope]
+
         grads_and_vars =[]
         for qz_vars in six.itervalues(trans_parm):
             g = tf.gradients(loss,qz_vars)  
-            #print(g) 
+
             if g[0] is not None:        
                 g[0] *= tf.exp(2.*qz_vars[1])
                 grads_and_vars.append((g[0],qz_vars[0]))
