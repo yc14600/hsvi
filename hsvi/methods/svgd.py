@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import edward as ed
+
 import numpy as np
 import tensorflow as tf
 
@@ -69,7 +69,7 @@ class SVGD:
             grad = tf.reshape(grad,hdim)
         return grad
 
-    def update(self,X,dlnprob,vars,niter=1000,optimizer=None):
+    def update(self,X,dlnprob,vars,niter=1000,optimizer=None,sess=None):
 
         sgrad = self.gradients(X,dlnprob)
 
@@ -84,7 +84,8 @@ class SVGD:
 
         train = optimizer.apply_gradients([(sgrad,vars)],global_step=global_step)
 
-        sess = ed.get_session()
+        if sess is None:
+            sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) 
         tf.global_variables_initializer().run()
 
         
