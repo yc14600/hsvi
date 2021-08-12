@@ -19,4 +19,4 @@ python setup.py install
 
 ## User Guide
 
-Please find full details in the [User Guide Page](https://github.com/yc14600/hsvi/wiki), which includes API introduction, several example models (BNN, VAE, and a probabilistic model) for both tensorflow and pytorch versions.
+Please find full details in the [User Guide Page](https://github.com/yc14600/hsvi/wiki/User-Guide-of-HSVI), which includes API introduction, several example models (BNN, VAE, and a probabilistic model) for both tensorflow and pytorch versions.
