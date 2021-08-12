@@ -1,0 +1,7 @@
+numpy
+scipy
+pandas
+matplotlib
+tensorflow_gpu==1.15
+torch
+torchvision
