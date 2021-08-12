@@ -7,7 +7,7 @@ import tensorflow as tf
 import six
 
 
-from utils.distributions import RandomVariable
+from .distributions import RandomVariable
 
 
 class Hierarchy_SVI:
