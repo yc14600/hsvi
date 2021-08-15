@@ -34,6 +34,9 @@ class Hierarchy_SVI:
             optimizer (dict, optional): 
                 optimizer in each scope, if not specified, an Adam optimizer will be configured for each scope.
                 Defaults to {}.
+            vi_types (dict, optional): 
+                the type of inference methods in each scope, the supported types are [KLqp, KLqp_analytic, MAP, MLE], e.g. {'global':'KLqp'}. If not specified, it is set to KLqp in a scope. 
+                Defaults to {}.
             train_size (int, optional): 
                 training size of observations, it's used to reweight the KL term in VI when scale of observations is 1. 
                 Defaults to 1000.
@@ -52,8 +55,14 @@ class Hierarchy_SVI:
         # because pytorch does not support variable scopes
         self.var_dict = var_dict 
         self.scopes = list(var_dict.keys())
+        
+        if scale is None:
+            self.scale = {}
+            for s in self.scopes:
+                self.scale.update({s:{}})
+        else:
+            self.scale = scale
 
-        self.scale = scale
         self.optimizer = optimizer
         self.vi_types = vi_types
         self.train_size = train_size
@@ -64,30 +73,30 @@ class Hierarchy_SVI:
         self.extra_loss = extra_loss
 
         # obtain loss functions in each scope        
-        self.losses = self.build_loss()  
+        self.losses = self._build_loss()  
 
         ### config optimizer for each scope ###
         for scope in self.scopes:
-            self.config_optimizer(scope)        
+            self._config_optimizer(scope)        
 
 
     ### build loss for a specified scope ###
-    def build_scope_loss(self,scope,losses):
-        """ Build loss for a specified scope
+    def _build_scope_loss(self,scope,losses):
+        """ Build loss for a specified scope.
 
         Args:
             scope (str): a specified scope
             losses (dict): the dict of loss functions
 
         Raises:
-            TypeError: 
+            TypeError: Not supported VI type.
         """
         vi_type = self.vi_types[scope]
         if vi_type in ['KLqp','KLqp_analytic']:
-            losses[scope] = self.build_reparam_ELBO 
+            losses[scope] = self._build_reparam_ELBO 
 
         elif vi_type in ['MAP','MLE']:
-            losses[scope] = self.build_MAP_MLE
+            losses[scope] = self._build_MAP_MLE
  
         else:
             raise TypeError('Not supported vi type: '+vi_type) 
@@ -95,7 +104,7 @@ class Hierarchy_SVI:
 
 
     ### build loss for all scopes ###
-    def build_loss(self):
+    def _build_loss(self):
         """ Build loss for all scopes
 
         Returns:
@@ -108,13 +117,13 @@ class Hierarchy_SVI:
             vi_type = self.vi_types.get(scope,'KLqp')
             print(scope,vi_type)
             self.vi_types[scope] = vi_type
-            self.build_scope_loss(scope,losses)
+            self._build_scope_loss(scope,losses)
         return losses
 
     
     @staticmethod
-    def build_reparam_ELBO(data,latent_vars,vi_type,train_size=1000,extra_loss=0.,scale={},*args,**kargs):
-        """ Loss function of ELBO in Bayesian variational inference, which relies on reparameterization trick if the KL term is not analytic.
+    def _build_reparam_ELBO(data,latent_vars,vi_type,train_size=1000,extra_loss=0.,scale={},*args,**kargs):
+        """ Loss function of ELBO of VI, which relies on reparameterization trick if the KL term is not analytic.
 
         Args:
             data (dict): 
@@ -151,7 +160,7 @@ class Hierarchy_SVI:
                 kl += torch.sum(qz.log_prob(qz.rsample()))-torch.sum(z.log_prob(qz.rsample()))
                         
             elif vi_type == 'KLqp_analytic':  
-                ## the function kl_divergence would require custermized implementation  
+                ## the function kl_divergence would require customized implementation  
                 ## according to the specific distribution family of qz and z                   
                 kl += torch.sum(kl_divergence(qz,z))                
                                               
@@ -162,8 +171,8 @@ class Hierarchy_SVI:
     
 
     @staticmethod
-    def build_MAP_MLE(data,latent_vars,vi_type,extra_loss=0.,*args,**kargs):
-        """ Build loss function of MAP or MLE.
+    def _build_MAP_MLE(data,latent_vars,vi_type,extra_loss=0.,*args,**kargs):
+        """ Build loss function of MAP or MLE loss.
 
         Args:
             data (dict): 
@@ -173,7 +182,7 @@ class Hierarchy_SVI:
             vi_type (type):
                 vi_type applied in this scope.
             extra_loss (scalar, optional): 
-                other losses in this scope, it's used to add custmoized losses other than the usual loss of VI, MAP, or MLE. 
+                other losses in this scope, it's used to add customized losses other than the usual loss of VI, MAP, or MLE. 
                 Defaults to 0.
         Returns:
             scalar: final loss
@@ -194,8 +203,8 @@ class Hierarchy_SVI:
 
 
 
-    def config_optimizer(self,scope):
-        """ Config default optimizer in a specified scope
+    def _config_optimizer(self,scope):
+        """ Config default optimizer for a specified scope.
 
         Args:
             scope (str): the scope name
